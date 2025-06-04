@@ -1,4 +1,4 @@
-module github.com/rubiojr/go-usbmon
+module github.com/VsevolodKamenskiy/go-usbmon
 
 go 1.19
 
