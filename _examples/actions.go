@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/rubiojr/go-usbmon"
+	"github.com/VsevolodKamenskiy/go-usbmon"
 )
 
 func main() {
