@@ -22,7 +22,8 @@ func NewUdevMonitor() *UdevMonitor {
 	u := udev.Udev{}
 	m := u.NewMonitorFromNetlink("udev")
 	_ = m.FilterAddMatchTag("seat")
-	_ = m.FilterAddMatchSubsystem("usb")
+	//_ = m.FilterAddMatchSubsystem("usb")
+	_ = m.FilterAddMatchSubsystemDevtype("usb", "usb_device")
 
 	return &UdevMonitor{monitor: m}
 }
