@@ -4,6 +4,8 @@
 
 A lightweight Go wrapper around libudev to simplify monitoring USB device add/remove events. This package abstracts away the complexities of the low-level udev API, providing a simple interface for detecting and responding to USB devices being connected or disconnected.
 
+Pluggable block devices (disks and partitions such as `/dev/sdb1`) are reported too. Virtual block devices (loop, device-mapper, zram, ...) are skipped.
+
 ```Go
 // monitor USB hotplug events
 package main
@@ -29,6 +31,26 @@ func main() {
 		fmt.Println("Path: " + dev.Path())
 		fmt.Println("Vendor: " + dev.Vendor())
 	}
+}
+```
+
+To get only block devices and find out why monitoring stopped:
+
+```Go
+filters := []usbmon.Filter{
+	&usbmon.ActionFilter{Action: usbmon.ActionAll},
+	&usbmon.SubsystemFilter{Subsystem: "block"},
+}
+devs, errs, err := usbmon.ListenWithErrors(ctx, filters...)
+if err != nil {
+	panic(err)
+}
+
+for dev := range devs {
+	fmt.Println(dev.Action(), dev.DevType(), dev.DevNode())
+}
+if err := <-errs; err != nil {
+	fmt.Println("monitoring failed:", err)
 }
 ```
 

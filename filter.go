@@ -1,5 +1,7 @@
 package usbmon
 
+import "strings"
+
 type Filter interface {
 	Matches(*Device) bool
 }
@@ -41,5 +43,22 @@ type PartitionFilter struct {
 }
 
 func (f *PartitionFilter) Matches(dev *Device) bool {
-	return dev.Properties()["DEVICETYPE"] == "partition"
+	return dev.DevType() == "partition"
+}
+
+// SubsystemFilter matches the devices of the given udev subsystem: "usb" or "block".
+type SubsystemFilter struct {
+	Subsystem string
+}
+
+func (f *SubsystemFilter) Matches(dev *Device) bool {
+	return dev.Subsystem() == f.Subsystem
+}
+
+// pluggable drops virtual devices, such as loop, device-mapper or zram block
+// devices, as they are not backed by hardware that can be plugged in.
+type pluggable struct{}
+
+func (pluggable) Matches(dev *Device) bool {
+	return !strings.HasPrefix(dev.Path(), "/devices/virtual/")
 }
