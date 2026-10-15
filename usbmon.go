@@ -75,6 +75,10 @@ func Listen(ctx context.Context) (chan *Device, error) {
 //
 // Filters are additive, meaning every device needs to match all the filter arguments.
 //
+// The unbind and remove events of an unplugged USB device carry the ID_*
+// properties (serial, vendor, model, ...) it had while connected, which udev
+// itself drops from them.
+//
 // The returned channel is closed when ctx is done or monitoring fails. Use
 // ListenWithErrors to find out why monitoring stopped.
 func ListenFiltered(ctx context.Context, filters ...Filter) (chan *Device, error) {
@@ -90,12 +94,23 @@ func ListenWithErrors(ctx context.Context, filters ...Filter) (<-chan *Device, <
 }
 
 func listen(ctx context.Context, filters []Filter) (chan *Device, chan error, error) {
+	ids, err := connectedUSBIDs()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	ch, ech, err := NewUdevMonitor().DeviceChan(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	devs, errs := filterDevices(ctx, ch, ech, newDevice, append([]Filter{pluggable{}}, filters...))
+	// ids is only used by the filterDevices goroutine.
+	toDevice := func(d *udev.Device) *Device {
+		dev := newDevice(d)
+		ids.update(dev)
+		return dev
+	}
+	devs, errs := filterDevices(ctx, ch, ech, toDevice, append([]Filter{pluggable{}}, filters...))
 	return devs, errs, nil
 }
 
