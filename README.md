@@ -1,24 +1,26 @@
-[![Go Reference](https://pkg.go.dev/badge/github.com/rubiojr/go-usbmon.svg)](https://pkg.go.dev/github.com/rubiojr/go-usbmon)
+[![Go Reference](https://pkg.go.dev/badge/github.com/VsevolodKamenskiy/go-usbmon.svg)](https://pkg.go.dev/github.com/VsevolodKamenskiy/go-usbmon)
 
 # USBMon
 
-A lightweight Go wrapper around libudev to simplify monitoring USB device add/remove events. This package abstracts away the complexities of the low-level udev API, providing a simple interface for detecting and responding to USB devices being connected or disconnected.
+Лёгкая обёртка над libudev для Go, упрощающая отслеживание подключения и отключения USB-устройств. Пакет скрывает сложности низкоуровневого API udev и даёт простой интерфейс, чтобы узнавать о подключении и отключении USB-устройств и реагировать на них.
 
-Pluggable block devices (disks and partitions such as `/dev/sdb1`) are reported too. Virtual block devices (loop, device-mapper, zram, ...) are skipped.
+Пакет сообщает и о подключаемых блочных устройствах: дисках и разделах вроде `/dev/sdb1`. Виртуальные блочные устройства (loop, device-mapper, zram и т. п.) пропускаются.
+
+Это форк [rubiojr/go-usbmon](https://github.com/rubiojr/go-usbmon), адаптированный под Astra Linux 1.7 и Go 1.19.
 
 ```Go
-// monitor USB hotplug events
+// Отслеживание подключения и отключения USB-устройств
 package main
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/rubiojr/go-usbmon"
+	"github.com/VsevolodKamenskiy/go-usbmon"
 )
 
 func main() {
-	// Print device properties when plugged in or unplugged
+	// Печатаем свойства устройства при подключении и отключении
 	filter := &usbmon.ActionFilter{Action: usbmon.ActionAll}
 	devs, err := usbmon.ListenFiltered(context.Background(), filter)
 	if err != nil {
@@ -34,7 +36,7 @@ func main() {
 }
 ```
 
-To get only block devices and find out why monitoring stopped:
+Чтобы получать только блочные устройства и узнать, почему мониторинг остановился:
 
 ```Go
 filters := []usbmon.Filter{
@@ -54,22 +56,23 @@ if err := <-errs; err != nil {
 }
 ```
 
-## Building
+## Сборка
 
-### Requirements
+### Требования
 
+* Go 1.19 или новее
 * libudev
 
-Ubuntu/Debian: `apt install libudev-dev`
+Astra Linux, Debian, Ubuntu: `apt install libudev-dev`
 
 Fedora/RHEL: `dnf install systemd-devel`
 
 Arch Linux: `pacman -S systemd-libs`
 
-## Additional examples
+## Другие примеры
 
-See [examples](_examples) for more usage examples.
+Больше примеров использования — в каталоге [_examples](_examples).
 
-## License
+## Лицензия
 
-MIT - See [LICENSE](LICENSE) for details.
+MIT — подробности в файле [LICENSE](LICENSE).
