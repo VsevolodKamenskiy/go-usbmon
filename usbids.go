@@ -1,11 +1,6 @@
 package usbmon
 
-import (
-	"errors"
-	"strings"
-
-	"github.com/jochenvg/go-udev"
-)
+import "strings"
 
 // usbIDs keeps the ID_* properties (ID_SERIAL, ID_VENDOR, ...) of the connected
 // USB devices by DEVPATH.
@@ -18,28 +13,14 @@ type usbIDs map[string]map[string]string
 // connectedUSBIDs returns the ID_* properties of the USB devices connected
 // before monitoring starts, so that their unbind and remove events get them too.
 func connectedUSBIDs() (usbIDs, error) {
-	u := udev.Udev{}
-	e := u.NewEnumerate()
-	if e == nil {
-		return nil, errors.New("udev: udev_enumerate_new failed")
-	}
-	if err := e.AddMatchSubsystem("usb"); err != nil {
-		return nil, err
-	}
-	devs, err := e.Devices()
+	devs, err := connected([]string{"usb"}, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	ids := usbIDs{}
-	for _, d := range devs {
-		// d is nil if the device was unplugged while enumerating.
-		if d == nil {
-			continue
-		}
-		if dev := newDevice(d); dev.DevType() == "usb_device" {
-			ids.remember(dev)
-		}
+	for _, dev := range devs {
+		ids.remember(dev)
 	}
 	return ids, nil
 }

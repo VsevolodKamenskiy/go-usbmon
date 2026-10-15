@@ -2,6 +2,9 @@ package usbmon
 
 import (
 	"context"
+	"errors"
+	"regexp"
+	"strings"
 
 	"github.com/jochenvg/go-udev"
 )
@@ -63,6 +66,75 @@ func (d *Device) DevType() string {
 // devices and "/dev/bus/usb/002/003" for USB devices.
 func (d *Device) DevNode() string {
 	return d.properties["DEVNAME"]
+}
+
+var (
+	usbRootHub = regexp.MustCompile(`^usb[0-9]+$`)
+	// USB devices are named after their bus and ports, e.g. "2-1", or "1-4.3"
+	// behind a hub, unlike their interfaces, e.g. "2-1:1.0".
+	usbDeviceName = regexp.MustCompile(`^[0-9]+-[0-9]+(\.[0-9]+)*$`)
+)
+
+// USBDevicePath returns the path of the USB device that the device is, or is
+// connected through: e.g. "/devices/pci0000:00/0000:00:14.0/usb2/2-1" for the
+// disk of a flash drive plugged into it. It returns "" for devices that aren't
+// connected through USB, such as NVMe disks.
+func (d *Device) USBDevicePath() string {
+	parts := strings.Split(d.Path(), "/")
+	for i, part := range parts {
+		if !usbRootHub.MatchString(part) {
+			continue
+		}
+		end := i
+		for end+1 < len(parts) && usbDeviceName.MatchString(parts[end+1]) {
+			end++
+		}
+		return strings.Join(parts[:end+1], "/")
+	}
+	return ""
+}
+
+// Connected returns the USB devices and the pluggable block devices connected
+// now that match all the filters, as ListenFiltered would report them when
+// plugged in. They have no action, so an ActionFilter doesn't match them.
+func Connected(filters ...Filter) ([]*Device, error) {
+	return connected([]string{"usb", "block"}, filters)
+}
+
+func connected(subsystems []string, filters []Filter) ([]*Device, error) {
+	filters = append([]Filter{pluggable{}}, filters...)
+
+	u := udev.Udev{}
+	var devs []*Device
+	for _, subsystem := range subsystems {
+		e := u.NewEnumerate()
+		if e == nil {
+			return nil, errors.New("udev: udev_enumerate_new failed")
+		}
+		if err := e.AddMatchSubsystem(subsystem); err != nil {
+			return nil, err
+		}
+		uds, err := e.Devices()
+		if err != nil {
+			return nil, err
+		}
+
+		for _, d := range uds {
+			// d is nil if the device was unplugged while enumerating.
+			if d == nil {
+				continue
+			}
+			dev := newDevice(d)
+			// Like the monitor, skip the USB interfaces.
+			if dev.Subsystem() == "usb" && dev.DevType() != "usb_device" {
+				continue
+			}
+			if matchesAll(dev, filters) {
+				devs = append(devs, dev)
+			}
+		}
+	}
+	return devs, nil
 }
 
 func Listen(ctx context.Context) (chan *Device, error) {

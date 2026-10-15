@@ -189,3 +189,24 @@ func TestDeviceProperties(t *testing.T) {
 	assert.Equal(t, "Samsung_SSD_970_EVO_Plus_250GB_S4EUNX0WC17400Z", d.LongSerial())
 	assert.Equal(t, "S4EUNX0WC17400Z", d.Serial())
 }
+
+func TestUSBDevicePath(t *testing.T) {
+	const port = "/devices/pci0000:00/0000:00:14.0/usb2/2-2"
+	const hubPort = "/devices/pci0000:00/0000:00:14.0/usb1/1-4/1-4.3"
+	for path, want := range map[string]string{
+		port:                                    port,
+		hubPort:                                 hubPort,
+		"/devices/pci0000:00/0000:00:14.0/usb1": "/devices/pci0000:00/0000:00:14.0/usb1",
+		port + "/2-2:1.0":                       port,
+		port + "/2-2:1.0/host1/target1:0:0/1:0:0:0/block/sdb":                       port,
+		port + "/2-2:1.0/host1/target1:0:0/1:0:0:0/block/sdb/sdb1":                  port,
+		hubPort + "/1-4.3:1.0/host3/target3:0:0/3:0:0:0/block/sdc":                  hubPort,
+		"/devices/pci0000:00/0000:00:1d.0/0000:02:00.0/nvme/nvme0/nvme0n1":          "",
+		"/devices/pci0000:00/0000:00:17.0/ata1/host0/target0:0:0/0:0:0:0/block/sda": "",
+		"/devices/virtual/block/loop0":                                              "",
+		"":                                                                          "",
+	} {
+		d := Device{properties: map[string]string{"DEVPATH": path}}
+		assert.Equal(t, want, d.USBDevicePath(), path)
+	}
+}

@@ -56,6 +56,20 @@ if err := <-errs; err != nil {
 }
 ```
 
+Чтобы узнать, какие устройства уже подключены, и к какому USB-устройству относится диск:
+
+```Go
+devs, err := usbmon.Connected(&usbmon.SubsystemFilter{Subsystem: "block"})
+if err != nil {
+	panic(err)
+}
+
+for _, dev := range devs {
+	// USBDevicePath пуст, если диск подключён не через USB
+	fmt.Println(dev.DevNode(), dev.USBDevicePath())
+}
+```
+
 ## Сборка
 
 ### Требования
